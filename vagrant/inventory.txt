@@ -1,15 +1,8 @@
 [control]
 control01 ansible_connection=local
 
-[loadbalancer]
-lb01
-
 [webserver]
 app01
-app02
 
 [database]
 db01
-
-[docker]
-docker01

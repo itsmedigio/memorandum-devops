@@ -1,6 +1,8 @@
 ---
 
 # playbook di esempio, quando viene runnato diventa un play
+# questo serve a fare il bootstrap (prima configurazione) di una macchina su cui ansible non ha mai girato
+# in questo caso aggiorniamo la macchina, creiamo un utente, gli aggiungiamo la chiave ssh e lo mettiamo nel sudoers, cosi che successivi playbook vengano eseguiti con utente tecnico "simone"
 
 - hosts: all # su quali host?
   become: true # diventa sudo

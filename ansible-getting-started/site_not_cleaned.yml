@@ -9,7 +9,7 @@
     tags: always
     dnf:
       update_cache: yes
-    changed_when: false
+    changed_when: false # serve a definire che cosa è da considerarsi un cambiamento, in questo caso apt update non sarà mai considerato un cambiamento
     when: ansible_distribution == "CentOS"
 
   - name: update repo cache (Ubuntu)

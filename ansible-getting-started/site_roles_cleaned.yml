@@ -24,10 +24,10 @@
   roles:
     - base
       
-- hosts: workstations
+- hosts: workstations # nome dell'host su cui farlo girare (inventory)
   become: true
-  roles:
-    - workstations
+  roles: # lista di ruoli da eseguire (il tutorial ha messo lo stesso nome ad hosts e roles, lo eviterei)
+    - workstations 
   
 - hosts: web_servers
   become: true
