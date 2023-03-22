@@ -1,0 +1,145 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+# README
+#
+# Getting Started:
+# $ vagrant plugin install vagrant-hostmanager
+# $ vagrant plugin install vagrant-vbguest
+# $ vagrant up
+# $ vagrant ssh control01
+#
+# This should put you at the control host
+#  with access, by name, to other vms
+Vagrant.configure(2) do |config|
+  config.hostmanager.enabled = true
+  #config.vm.box = "ubuntu/trusty64"
+  #sconfig.vm.box = "ubuntu/bionic64"
+  config.vm.box = "generic/ubuntu1804"
+  #config.vm.box = "generic/ubuntu1604"
+  config.hostmanager.manage_host = false
+  #config.ssh.timeout=1800 # 30 minutes
+  config.vm.boot_timeout = 1800 # 30 minutes
+  config.vm.define "control01", primary: true do |h|
+    h.vm.network "private_network", ip: "192.168.135.10"
+    h.vm.provision "shell", inline: "sudo apt-get update"
+    h.vm.provision "shell", inline: "sudo apt-get install -y dos2unix"
+    h.vm.provision "shell", inline: "find /usr/src/git_repo/vagrant/scripts -type f -print0 | xargs -0 dos2unix"
+    h.vm.provision "shell", path: "scripts/add_ansible_user.sh" 
+    h.vm.provision "shell", path: "scripts/generate_ansible_ssh_keys.sh" 
+    h.vm.provision "shell", path: "scripts/install_ansible.sh" 
+    h.vm.provision "shell", path: "scripts/populate_inventory.sh" 
+    h.vm.provision "shell", path: "scripts/install_git.sh"
+    h.vm.provision "shell", path: "scripts/clone_git_repo.sh" 
+    h.vm.provision :shell, inline: 'sudo -u ansible mkdir -p /home/ansible/work'
+    h.vm.provision :shell, inline: 'sudo -u ansible echo "export DOCKER_HOST=tcp://docker01:2375" > /home/ansible/.bash_profile'
+    #h.vm.provision "shell", path: "scripts/install_docker_client.sh"
+    h.vm.provision "shell", path: "scripts/install_docker.sh"
+    h.vm.provision "shell", path: "scripts/install_control01_software.sh"
+    h.vm.synced_folder ".", "/vagrant", disabled: false
+    h.vm.synced_folder "../ansible", "/ansible", disabled: false,  owner: "1002", group: "1002"
+    h.vm.synced_folder "../", "/usr/src/git_repo", disabled: false,  owner: "1002", group: "1002"
+    h.vm.hostname = "control01"
+    h.vm.provider :virtualbox do |vb|
+        vb.name = "control01"
+        vb.memory = "1024"
+        vb.customize ["modifyvm", :id, "--uart1", "0x3F8", "4"]
+        vb.customize ["modifyvm", :id, "--uartmode1", "file", File::NULL]
+        vb.customize ["modifyvm", :id, "--nestedpaging", "off"]
+    end
+    h.vm.provider :libvirt do |v|
+      v.memory = 1024
+    end
+  end
+
+  config.vm.define "lb01" do |h|
+    h.vm.network "private_network", ip: "192.168.135.101"
+    h.vm.provision :shell, path: "scripts/add_ansible_user.sh"
+    h.vm.synced_folder ".", "/vagrant", disabled: false
+    h.vm.provision :shell, inline: 'cat /vagrant/control.pub > /home/ansible/.ssh/authorized_keys'
+    h.vm.hostname = "lb01"
+    h.vm.provider :virtualbox do |vb|
+        vb.name = "lb01"
+        vb.memory = "1024"
+        vb.customize ["modifyvm", :id, "--uart1", "0x3F8", "4"]
+        vb.customize ["modifyvm", :id, "--uartmode1", "file", File::NULL]
+        vb.customize ["modifyvm", :id, "--nestedpaging", "off"]
+    end
+    h.vm.provider :libvirt do |v|
+      v.memory = 512
+    end
+  end
+
+  config.vm.define "app01" do |h|
+    h.vm.network "private_network", ip: "192.168.135.111"
+    h.vm.provision :shell, path: "scripts/add_ansible_user.sh"
+    h.vm.synced_folder ".", "/vagrant", disabled: false
+    h.vm.provision :shell, inline: 'cat /vagrant/control.pub > /home/ansible/.ssh/authorized_keys'
+    h.vm.hostname = "app01"
+    h.vm.provider :virtualbox do |vb|
+        vb.name = "app01"
+        vb.memory = "1024"
+        vb.customize ["modifyvm", :id, "--uart1", "0x3F8", "4"]
+        vb.customize ["modifyvm", :id, "--uartmode1", "file", File::NULL]
+        vb.customize ["modifyvm", :id, "--nestedpaging", "off"]
+    end
+    h.vm.provider :libvirt do |v|
+      v.memory = 512
+    end
+  end
+
+  config.vm.define "app02" do |h|
+    h.vm.network "private_network", ip: "192.168.135.112"
+    h.vm.provision :shell, path: "scripts/add_ansible_user.sh"
+    h.vm.synced_folder ".", "/vagrant", disabled: false
+    h.vm.provision :shell, inline: 'cat /vagrant/control.pub > /home/ansible/.ssh/authorized_keys'
+    h.vm.hostname = "app02"
+    h.vm.provider :virtualbox do |vb|
+        vb.name = "app02"
+        vb.memory = "1024"
+        vb.customize ["modifyvm", :id, "--uart1", "0x3F8", "4"]
+        vb.customize ["modifyvm", :id, "--uartmode1", "file", File::NULL]
+        vb.customize ["modifyvm", :id, "--nestedpaging", "off"]
+    end
+    h.vm.provider :libvirt do |v|
+      v.memory = 512
+    end
+  end
+
+  config.vm.define "db01" do |h|
+    h.vm.network "private_network", ip: "192.168.135.121"
+    h.vm.provision :shell, path: "scripts/add_ansible_user.sh"
+    h.vm.synced_folder ".", "/vagrant", disabled: false
+    h.vm.provision :shell, inline: 'cat /vagrant/control.pub >> /home/ansible/.ssh/authorized_keys'
+    h.vm.hostname = "db01"
+    h.vm.provider :virtualbox do |vb|
+        vb.name = "db01"
+        vb.memory = "1024"
+        vb.customize ["modifyvm", :id, "--uart1", "0x3F8", "4"]
+        vb.customize ["modifyvm", :id, "--uartmode1", "file", File::NULL]
+        vb.customize ["modifyvm", :id, "--nestedpaging", "off"]
+    end
+    h.vm.provider :libvirt do |v|
+      v.memory = 512
+    end
+  end
+
+  config.vm.define "docker01" do |h|
+    h.vm.network "private_network", ip: "192.168.135.131"
+    h.vm.provision :shell, path: "scripts/add_ansible_user.sh"
+    h.vm.provision "shell", path: "scripts/install_docker.sh"
+    h.vm.synced_folder ".", "/vagrant", disabled: false
+    h.vm.provision :shell, inline: 'cat /vagrant/control.pub >> /home/ansible/.ssh/authorized_keys'
+    h.vm.hostname = "docker01"
+    h.vm.provider :virtualbox do |vb|
+        vb.name = "docker01"
+        vb.customize ["modifyvm", :id, "--uart1", "0x3F8", "4"]
+        vb.customize ["modifyvm", :id, "--uartmode1", "file", File::NULL]
+        vb.customize ["modifyvm", :id, "--nestedpaging", "off"]
+    end
+    h.vm.provider :libvirt do |v|
+      v.memory = 512
+    end
+  end
+
+end
