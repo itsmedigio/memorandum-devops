@@ -1,0 +1,16 @@
+# file di inventory di ansible (esempio)
+
+# nome del cluster tra parentesi quadre
+[web_servers]
+# lista di ip appartenenti al cluster
+172.16.250.132
+172.16.250.248
+
+[db_servers]
+172.16.250.133
+
+[file_servers]
+172.16.250.134
+
+[workstations]
+172.16.250.135
