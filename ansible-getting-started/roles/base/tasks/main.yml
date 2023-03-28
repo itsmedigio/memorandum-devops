@@ -11,4 +11,17 @@
     owner: root
     group: root
     mode: 0644
-  notify: restart_sshd
+  notify: restart_sshd # questo chiama nella cartella handlers il task appropriato per gestire l'evento
+  # in questo caso faccio dei cambiamenti al config di ssh => restarto il servizio ssh chiamando il task
+
+# esempio per registrare una variabile
+
+- name: Check Ansible version
+  command: ansible --version
+  register: ansibleVersion # register assegna a una variabile con nome a destra il valore dell'output del modulo ansible
+
+# qua possiamo stampare per esempio l'stdout della variabile
+- name: Print version
+  debug: # modulo per stampare
+    msg: "Ansible Version: {{ ansibleVersion.stdout }}"
+

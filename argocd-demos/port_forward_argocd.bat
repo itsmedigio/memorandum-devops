@@ -1,0 +1,1 @@
+kubectl port-forward svc/argocd-server  --address 0.0.0.0  -n argocd 4000:443

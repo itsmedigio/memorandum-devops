@@ -13,11 +13,10 @@ Vagrant.configure(2) do |config|
     h.vm.provision "shell", path: "scripts/install_ansible.sh" 
     h.vm.provision "shell", path: "scripts/populate_inventory.sh" 
     h.vm.provision "shell", path: "scripts/install_git.sh"
-    h.vm.provision "shell", path: "scripts/clone_git_repo.sh" 
     h.vm.provision :shell, inline: 'sudo -u ansible mkdir -p /home/ansible/work'
     h.vm.provision "shell", path: "scripts/install_control01_software.sh"
     h.vm.synced_folder ".", "/vagrant", disabled: false
-    h.vm.synced_folder "../", "/usr/src/git_repo", disabled: false,  owner: "1002", group: "1002"
+    h.vm.synced_folder "../", "/git_repo", disabled: false,  owner: "1002", group: "1002"
     h.vm.hostname = "control01"
     h.vm.provider :virtualbox do |vb|
         vb.name = "control01"

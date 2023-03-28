@@ -2,6 +2,8 @@
   tags: apache,httpd,php
   package:
     name:
+    # quando viene runnato, queste variabili vengono sostituite con il contenuto di host_vars a runtime
+    # dentro le host_vars deve essere presente un file yaml con le variabili con il nome host dns della macchina o l'IP
       - "{{ apache_package_name }}"
       - "{{ php_package_name }}"
     state: latest
@@ -20,7 +22,7 @@
     regexp: '^ServerAdmin'
     line: ServerAdmin somebody@somewhere.com
   when: ansible_distribution == "CentOS"
-  notify: restart_apache
+  notify: restart_apache # quando c'è un cambiamento, notify chiama un handler che esegue un task appropriato per gestire quell'evento
     
 - name: copy html file for site
   tags: apache,apache,apache2,httpd

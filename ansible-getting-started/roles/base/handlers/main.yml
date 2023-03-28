@@ -1,3 +1,4 @@
+# quando viene chiamato il metodo notify, esso cerca nella cartella degli handler il task appropriato da runnare
 - name: restart_sshd
   service:
     name: sshd
