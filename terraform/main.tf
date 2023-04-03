@@ -16,15 +16,3 @@ provider "azurerm" {
   features {}
 }
 
-module "rg" {
-  source = "./modules/rg"
-}
-
-module "vnet" {
-  source              = "./modules/vnet"
-  name                = var.vnetname
-  resource_group_name = module.rg.name
-  depends_on = [
-    module.resource_group
-  ]
-}
