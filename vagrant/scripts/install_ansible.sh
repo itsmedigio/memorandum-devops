@@ -6,4 +6,3 @@ sudo apt-get install --yes ansible
 sudo apt-get install --yes python-pip
 sudo pip install docker-py
 sudo pip install requests
-#sudo apt-get upgrade --yes ansible
