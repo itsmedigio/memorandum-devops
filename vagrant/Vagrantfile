@@ -3,6 +3,7 @@ Vagrant.configure(2) do |config|
   config.vm.box = "generic/ubuntu1804"
   config.hostmanager.manage_host = false
   config.vm.boot_timeout = 1800 # 30 minutes
+
   config.vm.define "control01", primary: true do |h|
     h.vm.network "private_network", ip: "192.168.135.10"
     h.vm.provision "shell", inline: "sudo apt-get update"
@@ -19,11 +20,11 @@ Vagrant.configure(2) do |config|
     h.vm.synced_folder "../", "/git_repo", disabled: false,  owner: "1002", group: "1002"
     h.vm.hostname = "control01"
     h.vm.provider :virtualbox do |vb|
-        vb.name = "control01"
-        vb.memory = "1024"
-        vb.customize ["modifyvm", :id, "--uart1", "0x3F8", "4"]
-        vb.customize ["modifyvm", :id, "--uartmode1", "file", File::NULL]
-        vb.customize ["modifyvm", :id, "--nestedpaging", "off"]
+      vb.name = "control01"
+      vb.memory = "1024"
+      vb.customize ["modifyvm", :id, "--uart1", "0x3F8", "4"]
+      vb.customize ["modifyvm", :id, "--uartmode1", "file", File::NULL]
+      vb.customize ["modifyvm", :id, "--nestedpaging", "off"]
     end
     h.vm.provider :libvirt do |v|
       v.memory = 2048
@@ -37,11 +38,11 @@ Vagrant.configure(2) do |config|
     h.vm.provision :shell, inline: 'cat /vagrant/control.pub > /home/ansible/.ssh/authorized_keys'
     h.vm.hostname = "app01"
     h.vm.provider :virtualbox do |vb|
-        vb.name = "app01"
-        vb.memory = "1024"
-        vb.customize ["modifyvm", :id, "--uart1", "0x3F8", "4"]
-        vb.customize ["modifyvm", :id, "--uartmode1", "file", File::NULL]
-        vb.customize ["modifyvm", :id, "--nestedpaging", "off"]
+      vb.name = "app01"
+      vb.memory = "1024"
+      vb.customize ["modifyvm", :id, "--uart1", "0x3F8", "4"]
+      vb.customize ["modifyvm", :id, "--uartmode1", "file", File::NULL]
+      vb.customize ["modifyvm", :id, "--nestedpaging", "off"]
     end
     h.vm.provider :libvirt do |v|
       v.memory = 1024
@@ -55,15 +56,34 @@ Vagrant.configure(2) do |config|
     h.vm.provision :shell, inline: 'cat /vagrant/control.pub >> /home/ansible/.ssh/authorized_keys'
     h.vm.hostname = "db01"
     h.vm.provider :virtualbox do |vb|
-        vb.name = "db01"
-        vb.memory = "1024"
-        vb.customize ["modifyvm", :id, "--uart1", "0x3F8", "4"]
-        vb.customize ["modifyvm", :id, "--uartmode1", "file", File::NULL]
-        vb.customize ["modifyvm", :id, "--nestedpaging", "off"]
+      vb.name = "db01"
+      vb.memory = "1024"
+      vb.customize ["modifyvm", :id, "--uart1", "0x3F8", "4"]
+      vb.customize ["modifyvm", :id, "--uartmode1", "file", File::NULL]
+      vb.customize ["modifyvm", :id, "--nestedpaging", "off"]
     end
     h.vm.provider :libvirt do |v|
       v.memory = 1024
     end
   end
 
+  config.vm.define "rhel01" do |h|
+    h.vm.network "private_network", ip: "192.168.135.113"
+    h.vm.box = "generic/rhel8"
+    h.vm.provision :shell, path: "scripts/add_ansible_user.sh"
+    h.vm.synced_folder ".", "/vagrant", disabled: false
+    h.vm.provision :shell, inline: 'cat /vagrant/control.pub >> /home/ansible/.ssh/authorized_keys'
+    h.vm.hostname = "rhel01"
+    h.vm.provider :virtualbox do |vb|
+      vb.name = "rhel01"
+      vb.memory = "1024"
+      vb.customize ["modifyvm", :id, "--uart1", "0x3F8", "4"]
+      vb.customize ["modifyvm", :id, "--uartmode1", "file", File::NULL]
+      vb.customize ["modifyvm", :id, "--nestedpaging", "off"]
+    end
+    h.vm.provider :libvirt do |v|
+      v.memory = 1024
+    end
+  end
 end
+
