@@ -5,3 +5,6 @@
 control.pub
 *.log
 .vagrant
+*.DS_Store
+.DS_Store
+*DS_Store*
