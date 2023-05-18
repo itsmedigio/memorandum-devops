@@ -1,0 +1,1 @@
+vmrun start /Users/itsmedigio/Virtual\ Machines.localized/Red\ Hat\ Enterprise\ Linux\ 9\ 64-bit\ Arm.vmwarevm nogui
