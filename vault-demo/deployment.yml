@@ -1,0 +1,155 @@
+# k8s/deployment.yaml
+#
+# Deploys:
+#   - A ServiceAccount the pod uses to authenticate to Vault
+#   - A ConfigMap with the Vault Agent configuration
+#   - A Deployment with two containers:
+#       1. vault-agent  — init + sidecar: authenticates & renders secrets to a shared volume
+#       2. vault-demo   — your Java app: reads the rendered secret from the shared volume
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: vault-demo-sa
+  namespace: default
+
+---
+# Vault Agent configuration:
+#   - Authenticates using the pod's K8s ServiceAccount token
+#   - Renders the secret to /vault/secrets/db_password as plain text
+#   - Keeps running as a sidecar and refreshes the file when the lease renews
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vault-agent-config
+  namespace: default
+data:
+  vault-agent.hcl: |
+    vault {
+      address = "http://vault.default.svc.cluster.local:8200"
+      # TLS example (uncomment for production):
+      # tls_ca_cert = "/vault/tls/ca.crt"
+    }
+
+    auto_auth {
+      method "kubernetes" {
+        mount_path = "auth/kubernetes"
+        config = {
+          role = "vault-demo-role"
+        }
+      }
+
+      sink "file" {
+        config = {
+          path = "/vault/secrets/.token"
+          mode = 0640
+        }
+      }
+    }
+
+    # Render the secret to a plain file.
+    # The template strips the JSON wrapper and writes only the value.
+    template {
+      contents = <<EOT
+    {{- with secret "kv/data/db_password" -}}
+    {{ .Data.data.password }}
+    {{- end }}
+    EOT
+      destination = "/vault/secrets/db_password"
+      left_delimiter  = "{{"
+      right_delimiter = "}}"
+    }
+
+    template_config {
+      static_secret_render_interval = "10s"  # poll KV v2 every 10 seconds
+    }
+
+    # Keep the agent alive as a sidecar (comment out for init-only mode)
+    exit_after_auth = false
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vault-demo
+  namespace: default
+  labels:
+    app: vault-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vault-demo
+  template:
+    metadata:
+      labels:
+        app: vault-demo
+    spec:
+      serviceAccountName: vault-demo-sa
+
+      # Shared in-memory volume between vault-agent and vault-demo containers
+      volumes:
+        - name: vault-secrets
+          emptyDir:
+            medium: Memory   # never touches disk
+        - name: vault-agent-config
+          configMap:
+            name: vault-agent-config
+
+      # Init container: runs vault-agent once to render the secret BEFORE the app starts.
+      # This guarantees the secret file exists at app startup.
+      initContainers:
+        - name: vault-agent-init
+          image: hashicorp/vault:1.17
+          args:
+            - agent
+            - -config=/vault/config/vault-agent.hcl
+            - -exit-after-auth=true   # exit after first auth + render, hand off to sidecar
+          env:
+            - name: VAULT_SKIP_VERIFY
+              value: "true"   # remove if using valid TLS
+          volumeMounts:
+            - name: vault-secrets
+              mountPath: /vault/secrets
+            - name: vault-agent-config
+              mountPath: /vault/config
+
+      containers:
+        # --- Sidecar: keeps the secret fresh ---
+        - name: vault-agent
+          image: hashicorp/vault:1.17
+          args:
+            - agent
+            - -config=/vault/config/vault-agent.hcl
+          env:
+            - name: VAULT_SKIP_VERIFY
+              value: "true"
+          volumeMounts:
+            - name: vault-secrets
+              mountPath: /vault/secrets
+            - name: vault-agent-config
+              mountPath: /vault/config
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+
+        # --- Main app ---
+        - name: vault-demo
+          image: localhost/vault-demo:latest         # built from app/Dockerfile
+          imagePullPolicy: IfNotPresent    # use local minikube image
+          volumeMounts:
+            - name: vault-secrets
+              mountPath: /vault/secrets
+              readOnly: true
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi

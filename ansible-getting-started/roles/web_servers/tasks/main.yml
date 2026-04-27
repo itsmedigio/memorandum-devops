@@ -1,0 +1,34 @@
+- name: install apache and php packages
+  tags: apache,httpd,php
+  package:
+    name:
+    # quando viene runnato, queste variabili vengono sostituite con il contenuto di host_vars a runtime
+    # dentro le host_vars deve essere presente un file yaml con le variabili con il nome host dns della macchina o l'IP
+      - "{{ apache_package_name }}"
+      - "{{ php_package_name }}"
+    state: latest
+    
+- name: start and enable apache service
+  tags: apache,httpd
+  service:
+    name: "{{ apache_service }}"
+    state: started
+    enabled: yes
+
+- name: change e-mail address for admin
+  tags: apache,centos,httpd
+  lineinfile:
+    path: /etc/httpd/conf/httpd.conf
+    regexp: '^ServerAdmin'
+    line: ServerAdmin somebody@somewhere.com
+  when: ansible_distribution == "CentOS"
+  notify: restart_apache # quando c'è un cambiamento, notify chiama un handler che esegue un task appropriato per gestire quell'evento
+    
+- name: copy html file for site
+  tags: apache,apache,apache2,httpd
+  copy:
+    src: default_site.html
+    dest: /var/www/html/index.html
+    owner: root
+    group: root
+    mode: 0644
