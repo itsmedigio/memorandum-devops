@@ -19,18 +19,14 @@
     - name: Check if server is already a Domain Controller
       ansible.windows.win_powershell:
         script: |
-          try {
-            $role = (Get-CimInstance Win32_ComputerSystem).DomainRole
-            # 4 = Backup DC, 5 = Primary DC
-            if ($role -ge 4) {
-              Write-Output "DC"
-            } else {
-              Write-Output "NOT_DC"
-            }
-          } catch {
+          $role = (Get-CimInstance Win32_ComputerSystem).DomainRole
+          if ($role -ge 4) {
+            Write-Output "DC"
+          } else {
             Write-Output "NOT_DC"
           }
       register: dc_status
+      changed_when: false
 
     - name: Promote server to Domain Controller (only if not already)
       ansible.windows.win_powershell:
@@ -45,7 +41,10 @@
             -SafeModeAdministratorPassword $secpass `
             -InstallDns `
             -Force:$true
-      when: "'NOT_DC' in dc_status.stdout"
+      when: 
+        - dc_status is defined
+        - dc_status.stdout is defined
+        - "'NOT_DC' in dc_status.stdout"
       register: dc_promo
 
     - name: Reboot after domain controller promotion
