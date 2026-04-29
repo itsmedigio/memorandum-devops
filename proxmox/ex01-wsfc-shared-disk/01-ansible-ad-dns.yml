@@ -43,8 +43,8 @@
             -Force:$true
       when: 
         - dc_status is defined
-        - dc_status.stdout is defined
-        - "'NOT_DC' in dc_status.stdout"
+        - dc_status.output is defined
+        - "'NOT_DC' in dc_status.output | trim"
       register: dc_promo
 
     - name: Reboot after domain controller promotion
