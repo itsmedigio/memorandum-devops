@@ -1,0 +1,20 @@
+- name: WSFC - Install Windows features
+  hosts: all
+  gather_facts: false
+  tasks:
+  
+    - name: "Install Windows features required by Failover Clustering"
+      ansible.windows.win_feature:
+        name:
+          - Failover-Clustering
+          - RSAT-Clustering-AutomationServer
+          - RSAT-Clustering-Mgmt
+          - RSAT-Clustering-PowerShell
+        state: present
+      timeout: 3600
+      register: win_install
+
+    - name: "Reboot if installation requires it"
+      ansible.windows.win_reboot:
+        reboot_timeout: 3600
+      when: win_install is defined and win_install.reboot_required

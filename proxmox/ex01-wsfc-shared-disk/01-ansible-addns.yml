@@ -1,0 +1,94 @@
+- name: Install AD and DNS features
+  hosts: all
+  gather_facts: false
+  tasks:
+
+    - name: Install Active Directory Domain Services and DNS
+      ansible.windows.win_feature:
+        name:
+          - AD-Domain-Services
+          - DNS
+        include_management_tools: yes
+        state: present
+      register: ad_install
+
+    - name: Reboot if AD DS install requires it
+      ansible.windows.win_reboot:
+      when: ad_install.reboot_required
+
+    - name: Check if server is already a Domain Controller
+      ansible.windows.win_powershell:
+        script: |
+          try {
+            $role = (Get-CimInstance Win32_ComputerSystem).DomainRole
+            # 4 = Backup DC, 5 = Primary DC
+            if ($role -ge 4) {
+              Write-Output "DC"
+            } else {
+              Write-Output "NOT_DC"
+            }
+          } catch {
+            Write-Output "NOT_DC"
+          }
+      register: dc_status
+
+    - name: Promote server to Domain Controller (only if not already)
+      ansible.windows.win_powershell:
+        script: |
+          Import-Module ADDSDeployment
+
+          $secpass = ConvertTo-SecureString "SuperSecurePassword123!" -AsPlainText -Force
+
+          Install-ADDSForest `
+            -DomainName "davidedigiovanni.net" `
+            -DomainNetbiosName "DAVIDEDIGIOVANNINET" `
+            -SafeModeAdministratorPassword $secpass `
+            -InstallDns `
+            -Force:$true
+      when: "'NOT_DC' in dc_status.stdout"
+      register: dc_promo
+
+    - name: Reboot after domain controller promotion
+      ansible.windows.win_reboot:
+      when: dc_promo is defined and dc_promo.changed
+
+    
+## create some demo groups users and assignments    
+    
+    - name: Ensure AD groups (roles) exist
+      microsoft.ad.group:
+        name: "{{ item.name }}"
+        scope: global
+        category: security
+        state: present
+      loop:
+        - { name: "admin" }
+        - { name: "rdpaccessor" }
+        - { name: "basicuser" }
+
+
+    - name: Ensure AD users exist
+      microsoft.ad.user:
+        name: "{{ item.name }}"
+        sam_account_name: "{{ item.name }}"
+        user_principal_name: "{{ item.name }}@davidedigiovanni.net"
+        password: "{{ item.password }}"
+        state: present
+        enabled: true
+        password_never_expires: true
+      loop:
+        - { name: "alice", password: "Alice123!" }
+        - { name: "bob", password: "Bob123!" }
+        - { name: "chris", password: "Chris123!" }
+
+    - name: Assign users to groups
+      microsoft.ad.group:
+        name: "{{ item.group }}"
+        members:
+          add:
+            - "{{ item.user }}"
+      loop:
+        - { user: "alice", group: "admin" }
+        - { user: "alice", group: "rdpaccessor" }
+        - { user: "bob", group: "rdpaccessor" }
+        - { user: "chris", group: "basicuser" }
