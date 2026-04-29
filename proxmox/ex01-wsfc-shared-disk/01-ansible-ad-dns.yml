@@ -76,9 +76,9 @@
         enabled: true
         password_never_expires: true
       loop:
-        - { name: "alice", password: "Alice123!" }
-        - { name: "bob", password: "Bob123!" }
-        - { name: "chris", password: "Chris123!" }
+        - { name: "alice", password: "Demolab001!" }
+        - { name: "bob", password: "Demolab001!" }
+        - { name: "chris", password: "Demolab001!" }
 
     - name: Assign users to groups
       microsoft.ad.group:
