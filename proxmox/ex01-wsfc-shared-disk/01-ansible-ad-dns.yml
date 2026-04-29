@@ -36,8 +36,8 @@
           $secpass = ConvertTo-SecureString "SuperSecurePassword123!" -AsPlainText -Force
 
           Install-ADDSForest `
-            -DomainName "davidedigiovanni.net" `
-            -DomainNetbiosName "DAVIDEDIGIOVANNINET" `
+            -DomainName "prod.davidedigio.net" `
+            -DomainNetbiosName "DAVIDEDIGIO" `
             -SafeModeAdministratorPassword $secpass `
             -InstallDns `
             -Force:$true
@@ -70,7 +70,7 @@
       microsoft.ad.user:
         name: "{{ item.name }}"
         sam_account_name: "{{ item.name }}"
-        user_principal_name: "{{ item.name }}@davidedigiovanni.net"
+        user_principal_name: "{{ item.name }}@davidedigio.net"
         password: "{{ item.password }}"
         state: present
         enabled: true
