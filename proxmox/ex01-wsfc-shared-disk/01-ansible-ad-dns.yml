@@ -70,7 +70,7 @@
       microsoft.ad.user:
         name: "{{ item.name }}"
         sam_account_name: "{{ item.name }}"
-        user_principal_name: "{{ item.name }}@davidedigio.net"
+        upn: "{{ item.name }}@davidedigio.net"
         password: "{{ item.password }}"
         state: present
         enabled: true
