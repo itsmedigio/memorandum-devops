@@ -1,0 +1,99 @@
+- name: Configure GPO
+  hosts: all
+  gather_facts: false
+  tasks:
+
+    # -------------------------------------------------------------------------
+    # RDP restriction: only rdpaccessor members can log on via RDP
+    # Enforced via GPO linked to the domain. Applies to all domain-joined machines.
+    # -------------------------------------------------------------------------
+
+    - name: Create GPO for RDP access restriction
+      ansible.windows.win_powershell:
+        script: |
+          Import-Module GroupPolicy
+
+          $gpoName = "RDP Access Control"
+          $domainName = "prod.davidedigio.net"
+
+          if (-not (Get-GPO -Name $gpoName -ErrorAction SilentlyContinue)) {
+            New-GPO -Name $gpoName -Domain $domainName | Out-Null
+            Write-Output "CREATED"
+          } else {
+            Write-Output "EXISTS"
+          }
+      register: gpo_create
+      changed_when: "'CREATED' in gpo_create.output"
+
+    - name: Set Allow log on through Remote Desktop Services in GPO
+      ansible.windows.win_powershell:
+        script: |
+          Import-Module GroupPolicy
+
+          $gpoName   = "RDP Access Control"
+          $domainName = "prod.davidedigio.net"
+          $section   = "User Rights"
+
+          # SeDenyRemoteInteractiveLogonRight is the deny side; use SeRemoteInteractiveLogonRight for allow.
+          # Setting the allow list to only rdpaccessor implicitly denies everyone else.
+          Set-GPRegistryValue `
+            -Name $gpoName `
+            -Key "HKLM\SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services" `
+            -ValueName "fDenyTSConnections" `
+            -Type DWord `
+            -Value 0 | Out-Null
+
+          # Privilege rights cannot be set via Set-GPRegistryValue; use secedit-based approach via inf.
+          # Build a Security Template inf and import it into the GPO.
+          $infContent = @"
+          [Unicode]
+          Unicode=yes
+          [Version]
+          signature="`$CHICAGO`$"
+          Revision=1
+          [Privilege Rights]
+          SeRemoteInteractiveLogonRight = *S-1-5-32-544,DAVIDEDIGIO\rdpaccessor
+          "@
+
+          $infPath = "$env:TEMP\rdp_restriction.inf"
+          $infContent | Out-File -FilePath $infPath -Encoding Unicode
+
+          $gpo = Get-GPO -Name $gpoName
+          $gpoId = $gpo.Id.ToString()
+          $sysvolPath = "\\$domainName\SYSVOL\$domainName\Policies\{$gpoId}\Machine\Microsoft\Windows NT\SecEdit"
+
+          if (-not (Test-Path $sysvolPath)) {
+            New-Item -ItemType Directory -Path $sysvolPath -Force | Out-Null
+          }
+
+          Copy-Item $infPath "$sysvolPath\GptTmpl.inf" -Force
+
+          # Update GPO version to force clients to pick it up
+          $gptIniPath = "\\$domainName\SYSVOL\$domainName\Policies\{$gpoId}\GPT.INI"
+          $gptIni = Get-Content $gptIniPath
+          $gptIni = $gptIni -replace 'Version=(\d+)', { "Version=$([int]$matches[1] + 1)" }
+          $gptIni | Set-Content $gptIniPath
+
+          Write-Output "CONFIGURED"
+      changed_when: "'CONFIGURED' in gpo_rdp.output"
+      register: gpo_rdp
+
+    - name: Link GPO to domain root
+      ansible.windows.win_powershell:
+        script: |
+          Import-Module GroupPolicy
+
+          $gpoName    = "RDP Access Control"
+          $domainName = "prod.davidedigio.net"
+          $domainDN   = "DC=prod,DC=davidedigio,DC=net"
+
+          $existingLinks = (Get-GPInheritance -Target $domainDN).GpoLinks | Where-Object { $_.DisplayName -eq $gpoName }
+
+          if (-not $existingLinks) {
+            New-GPLink -Name $gpoName -Target $domainDN -LinkEnabled Yes | Out-Null
+            Write-Output "LINKED"
+          } else {
+            Write-Output "ALREADY_LINKED"
+          }
+      register: gpo_link
+      changed_when: "'LINKED' in gpo_link.output"

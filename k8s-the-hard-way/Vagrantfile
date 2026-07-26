@@ -1,0 +1,42 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "generic/ubuntu2204"
+  config.vm.boot_timeout = 600
+
+  config.vm.provider :virtualbox do |vb|
+    vb.customize ["modifyvm", :id, "--uart1", "0x3F8", "4"]
+    vb.customize ["modifyvm", :id, "--uartmode1", "file", File::NULL]
+    vb.customize ["modifyvm", :id, "--nestedpaging", "off"]
+  end
+
+  NODES = [
+    { name: "cp-1",      ip: "192.168.56.11", cpus: 2, mem: 2048 },
+    { name: "worker-1",  ip: "192.168.56.21", cpus: 1, mem: 2048 },
+    { name: "worker-2",  ip: "192.168.56.22", cpus: 1, mem: 2048 },
+  ]
+
+  NODES.each do |node|
+    config.vm.define node[:name] do |n|
+      n.vm.hostname = node[:name]
+      n.vm.network "private_network", ip: node[:ip]
+
+      n.vm.provider :virtualbox do |vb|
+        vb.name = "k8s-#{node[:name]}"
+        vb.memory = node[:mem]
+        vb.cpus = node[:cpus]
+      end
+
+      n.vm.provider :vmware_fusion do |vmf|
+        vmf.vmx["memsize"] = node[:mem].to_s
+        vmf.vmx["numvcpus"] = node[:cpus].to_s
+      end
+
+      n.vm.provision "shell", path: "scripts/common.sh", env: {
+        "NODE_IP" => node[:ip],
+        "NODE_NAME" => node[:name]
+      }
+    end
+  end
+end

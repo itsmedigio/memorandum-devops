@@ -1,0 +1,11 @@
+param name string
+
+resource resourceName 'Resource.Provider/type@apiVersion' = {
+  name: 'resource-name'
+  location: resourceGroup().location
+  properties: {
+    // settings
+  }
+}
+
+output result string = 'done'

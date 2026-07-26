@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: postgres-vulnerabile
+  namespace: default
+spec:
+  containers:
+  - name: postgres
+    image: postgres:13
+    # Root e privileged container
+    securityContext:
+      privileged: true
+      runAsNonRoot: false
+    
+    # No limits
+    resources: {}
+
+    # Password in clear text
+    env:
+    - name: POSTGRES_PASSWORD
+      value: "MioDatabaseSuperSicuro123!"
