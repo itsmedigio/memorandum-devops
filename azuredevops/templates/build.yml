@@ -1,0 +1,27 @@
+parameters:
+  pythonVersion: ''
+
+jobs:
+
+- job: Build
+
+  pool:
+    vmImage: ubuntu-latest
+
+  steps:
+
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: ${{ parameters.pythonVersion }}
+
+  - script: |
+      python -m pip install --upgrade pip
+      pip install -r requirements.txt
+    displayName: Install Requirements
+
+  - script: |
+      pytest
+    displayName: Run Tests
+
+  - publish: .
+    artifact: source

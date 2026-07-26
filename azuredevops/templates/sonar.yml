@@ -1,0 +1,19 @@
+jobs:
+
+- job: SonarQube
+
+  steps:
+
+  - task: SonarQubePrepare@5
+    inputs:
+      SonarQube: 'SonarQube'
+      scannerMode: 'CLI'
+      configMode: 'manual'
+      cliProjectKey: 'FlaskApp'
+      cliProjectName: 'FlaskApp'
+      cliSources: '.'
+
+  - script: |
+      sonar-scanner
+
+  - task: SonarQubePublish@5

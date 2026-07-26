@@ -1,0 +1,29 @@
+parameters:
+
+  registry: ''
+  repository: ''
+  tag: ''
+
+jobs:
+
+- job: Docker
+
+  pool:
+    vmImage: ubuntu-latest
+
+  steps:
+
+  - task: Docker@2
+    inputs:
+      command: login
+      containerRegistry: ACR
+
+  - task: Docker@2
+    inputs:
+      command: buildAndPush
+      repository: ${{ parameters.repository }}
+      Dockerfile: Dockerfile
+      containerRegistry: ACR
+      tags: |
+        latest
+        ${{ parameters.tag }}

@@ -1,0 +1,11 @@
+jobs:
+
+- job: NexusIQ
+
+  steps:
+
+  - task: NexusIqPipelineTask@1
+    inputs:
+      nexusIqService: NexusIQ
+      applicationId: FlaskApp
+      stage: build

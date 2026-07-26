@@ -1,0 +1,21 @@
+parameters:
+  env: ''
+
+jobs:
+
+- deployment: Deploy_${{ parameters.env }}
+
+  displayName: Deploy to ${{ parameters.env }}
+
+  environment: ${{ parameters.env }}
+
+  strategy:
+    runOnce:
+      deploy:
+        steps:
+
+        - task: AzureFunctionAppContainer@1
+          inputs:
+            azureSubscription: Azure-ServiceConnection
+            appName: flask-function-${{ parameters.env }}
+            imageName: myacr.azurecr.io/flask-api:$(Build.BuildId)

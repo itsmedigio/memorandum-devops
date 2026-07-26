@@ -1,0 +1,12 @@
+jobs:
+
+- job: Snyk
+
+  steps:
+
+  - task: SnykSecurityScan@1
+    inputs:
+      serviceConnectionEndpoint: 'Snyk'
+      testType: 'app'
+      monitorWhen: 'always'
+      failOnIssues: true

@@ -1,0 +1,78 @@
+trigger:
+- main
+
+variables:
+  pythonVersion: '3.11'
+  imageName: 'flask-api'
+  dockerRegistry: 'myacr.azurecr.io'
+  repository: 'flask-api'
+  tag: '$(Build.BuildId)'
+
+stages:
+
+- stage: Build
+  jobs:
+  - template: templates/build.yml
+    parameters:
+      pythonVersion: $(pythonVersion)
+
+- stage: CodeQuality
+  dependsOn: Build
+  jobs:
+  - template: templates/sonar.yml
+  - template: templates/nexusiq.yml
+
+- stage: Security
+  dependsOn: CodeQuality
+  jobs:
+  - template: templates/trivy.yml
+  - template: templates/snyk.yml
+
+- stage: Docker
+  dependsOn: Security
+  jobs:
+  - template: templates/docker.yml
+    parameters:
+      registry: $(dockerRegistry)
+      repository: $(repository)
+      tag: $(tag)
+
+#####################################################
+# Deploy Dev
+#####################################################
+
+- stage: Deploy_Dev
+  displayName: Deploy Dev
+  dependsOn: Docker
+
+  jobs:
+  - template: templates/deploy-function.yml
+    parameters:
+      env: dev
+
+#####################################################
+# Deploy Test
+#####################################################
+
+- stage: Deploy_Test
+  displayName: Deploy Test
+  dependsOn: Deploy_Dev
+
+  jobs:
+  - template: templates/deploy-function.yml
+    parameters:
+      env: test
+
+#####################################################
+# Deploy Production
+#####################################################
+
+- stage: Deploy_Prod
+  displayName: Deploy Production
+  dependsOn: Deploy_Test
+  condition: succeeded()
+
+  jobs:
+  - template: templates/deploy-function.yml
+    parameters:
+      env: prod

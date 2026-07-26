@@ -1,3 +1,18 @@
+.
+├── azure-pipelines.yml          # Entry point
+├── templates/
+│   ├── build.yml
+│   ├── sonar.yml
+│   ├── nexusiq.yml
+│   ├── trivy.yml
+│   ├── snyk.yml
+│   ├── docker.yml
+│   └── deploy-function.yml
+├── app.py
+├── requirements.txt
+├── Dockerfile
+└── tests/
+
 [Stage: Build & SAST]
 │
 ▼
