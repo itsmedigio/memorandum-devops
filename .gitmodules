@@ -1,0 +1,3 @@
+[submodule "jenkins-security"]
+	path = jenkins-security
+	url = https://github.com/itsmedigio/shitty-user-api.git
